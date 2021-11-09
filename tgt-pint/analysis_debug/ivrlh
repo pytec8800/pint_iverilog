@@ -1,0 +1,22 @@
+basedir:../../install/lib/ivl
+module:../../install/lib/ivl/system.vpi
+module:../../install/lib/ivl/vhdl_sys.vpi
+module:../../install/lib/ivl/vhdl_textio.vpi
+module:../../install/lib/ivl/v2005_math.vpi
+module:../../install/lib/ivl/va_math.vpi
+generation:2005
+generation:no-specify
+generation:assertions
+generation:xtypes
+generation:io-range-error
+generation:no-strict-ca-eval
+generation:no-strict-expr-width
+generation:shared-loop-index
+generation:no-verilog-ams
+generation:icarus-misc
+warnings:n
+ignore_missing_modules:false
+out:a.out
+iwidth:32
+widthcap:65536
+ivlpp:../../install/lib/ivl/ivlpp  -L -F"ivrlg2" -P"ivrli"

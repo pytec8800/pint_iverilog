@@ -1,0 +1,5 @@
+D:__ICARUS__=1
+vhdlpp:../../install/lib/ivl/vhdlpp
+vhdlpp-work:ivl_vhdl_work
+I:../../install/lib/ivl/include
+relative include:false

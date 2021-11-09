@@ -1,0 +1,105 @@
+#
+#    This source code is free software; you can redistribute it
+#    and/or modify it in source code form under the terms of the GNU
+#    Library General Public License as published by the Free Software
+#    Foundation; either version 2 of the License, or (at your option)
+#    any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Library General Public License for more details.
+#
+#    You should have received a copy of the GNU Library General Public
+#    License along with this program; if not, write to the Free
+#    Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+#    Boston, MA 02110-1301, USA.
+#
+SHELL = /bin/sh
+
+suffix = @install_suffix@
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+srcdir = @srcdir@
+
+VPATH = $(srcdir) ./analysis/
+
+bindir = @bindir@
+libdir = @libdir@
+includedir = $(prefix)/include
+
+CC = @CXX@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+ifeq (@srcdir@,.)
+INCLUDE_PATH = -I. -I.. -I../libmisc -I./analysis
+else
+INCLUDE_PATH = -I. -I.. -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../libmisc -I./analysis
+endif
+
+CPPFLAGS = $(INCLUDE_PATH) @CPPFLAGS@ @DEFS@ @PICFLAG@ -std=c++11
+CFLAGS = @WARNING_FLAGS@ @WARNING_FLAGS_CC@ @CFLAGS@ -std=c++11
+LDFLAGS = @LDFLAGS@
+
+O = pint.o classes.o constant.o enumerate.o expression.o statement.o switches.o types.o multi_assign.o multi_assign2.o analysis.o analysis_sensitive.o
+
+all: dep pint.tgt
+
+check: all
+
+clean:
+	rm -rf *.o dep pint.tgt
+
+distclean: clean
+	rm -f Makefile config.log
+
+cppcheck: $(O:.o=.c)
+	cppcheck --enable=all --std=posix --std=c99 --std=c++03 -f \
+	         --suppressions-list=$(srcdir)/cppcheck.sup \
+	         --relative-paths=$(srcdir) $(INCLUDE_PATH) $^
+
+Makefile: $(srcdir)/Makefile.in ../config.status
+	cd ..; ./config.status --file=tgt-pint/$@
+
+dep:
+	mkdir dep
+
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) @DEPENDENCY_FLAG@ -c $< -o $*.o
+	mv $*.d dep
+
+ifeq (@WIN32@,yes)
+  TGTLDFLAGS=-L.. -livl
+  TGTDEPLIBS=../libivl.a
+else
+  TGTLDFLAGS=
+  TGTDEPLIBS=
+endif
+
+pint.tgt: $O $(TGTDEPLIBS)
+	$(CC) @shared@ $(LDFLAGS) -o $@ $O $(TGTLDFLAGS) -lpthread
+
+install: all installdirs installfiles
+
+F = ./pint.tgt \
+	$(srcdir)/pint.conf \
+	$(srcdir)/pint-s.conf
+
+installfiles: $(F) | installdirs
+	$(INSTALL_PROGRAM) ./pint.tgt "$(DESTDIR)$(libdir)/ivl$(suffix)/pint.tgt"
+	$(INSTALL_DATA) $(srcdir)/pint.conf "$(DESTDIR)$(libdir)/ivl$(suffix)/pint.conf"
+	$(INSTALL_DATA) $(srcdir)/pint-s.conf "$(DESTDIR)$(libdir)/ivl$(suffix)/pint-s.conf"
+
+installdirs: $(srcdir)/../mkinstalldirs
+	$(srcdir)/../mkinstalldirs "$(DESTDIR)$(libdir)/ivl$(suffix)"
+
+uninstall:
+	rm -f "$(DESTDIR)$(libdir)/ivl$(suffix)/pint.tgt"
+	rm -f "$(DESTDIR)$(libdir)/ivl$(suffix)/pint.conf"
+	rm -f "$(DESTDIR)$(libdir)/ivl$(suffix)/pint-s.conf"
+
+
+-include $(patsubst %.o, dep/%.d, $O)
