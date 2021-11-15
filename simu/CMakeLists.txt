@@ -4,9 +4,7 @@ PROJECT(simu)
 set(SIMU_PINT_MODE OFF)
 set(RISCV /usr/local/pint/riscv)
 
-execute_process(COMMAND which pintcc
-    RESULT_VARIABLE find_pint)
-if(find_pint EQUAL 0)
+if(EXISTS "/usr/local/pint/bin/pintcc")
     message("find pint card in your env, will install pint mode and cpu mode!")
     set(SIMU_PINT_MODE ON)
 else()

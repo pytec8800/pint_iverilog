@@ -1,0 +1,108 @@
+#
+#    This source code is free software; you can redistribute it
+#    and/or modify it in source code form under the terms of the GNU
+#    Library General Public License as published by the Free Software
+#    Foundation; either version 2 of the License, or (at your option)
+#    any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Library General Public License for more details.
+#
+#    You should have received a copy of the GNU Library General Public
+#    License along with this program; if not, write to the Free
+#    Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+#    Boston, MA 02110-1301, USA.
+#
+SHELL = /bin/sh
+
+TOP_PATH=$(shell pwd)
+SIMU_HOME_DIRECTORY=$(TOP_PATH)
+find_pint=0
+CC=g++
+RISCV=/usr/local/pint/riscv
+INCLUDE_OPTION=-I/usr/local/pint/include -I/usr/local/pint/include/uap_API -I$(SIMU_HOME_DIRECTORY)/inc/
+COMPILE_OPTION=-g -std=c++11 -mcmodel=large -fpermissive -DCPU_MODE -DUSE_CXX11
+COMPILE_PINT_OPTION=-fpermissive -Wno-write-strings -fsigned-char -std=c++1z -falign-functions=64 -Wl,--gc-sections --param max-inline-insns-single=200 --param max-inline-insns-auto=40
+COMPILE_PLI_OPTION=-fpermissive -DPINT_PLI_MODE -Wno-write-strings -fsigned-char -std=c++1z -falign-functions=64 -Wl,--gc-sections --param max-inline-insns-single=200 --param max-inline-insns-auto=40
+find_pint=$(shell if [ -f /usr/local/pint/bin/pintcc ]; then echo "exist"; else echo "noexist"; fi)
+$(info "$(find_pint)")
+ifeq ("$(find_pint)", "exist")
+  BUILD_TARGET: pint_mode pint_pli pint_cpu
+  INSTALL_TARGET: pint_install cpu_install
+else
+  BUILD_TARGET: pint_cpu
+  INSTALL_TARGET: cpu_install
+endif
+
+all: BUILD_TARGET
+
+pint_mode:
+	cd ./tools && make all
+	cd ./prof && make all
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PINT_OPTION) -o $(SIMU_HOME_DIRECTORY)/main.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/main.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PINT_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_simu.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PINT_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_net.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_net.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PINT_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_vpi.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PINT_OPTION) -o $(SIMU_HOME_DIRECTORY)/perf.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/perf.c -fno-builtin
+	ar rcs -o $(SIMU_HOME_DIRECTORY)/pintsimu.a $(SIMU_HOME_DIRECTORY)/main.o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(SIMU_HOME_DIRECTORY)/pint_net.o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(SIMU_HOME_DIRECTORY)/perf.o
+pint_pli:
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PLI_OPTION) -o $(SIMU_HOME_DIRECTORY)/main.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/main.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PLI_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_simu.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PLI_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_net.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_net.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PLI_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_vpi.c -fno-builtin
+	$(RISCV)/bin/riscv32-unknown-elf-g++ -nostartfiles -nostdlib $(COMPILE_PLI_OPTION) -o $(SIMU_HOME_DIRECTORY)/perf.o $(INCLUDE_OPTION) -march=rv32imf -mabi=ilp32f -c -O2 $(SIMU_HOME_DIRECTORY)/src/perf.c -fno-builtin
+	ar rcs -o $(SIMU_HOME_DIRECTORY)/pintsimu_pli.a $(SIMU_HOME_DIRECTORY)/main.o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(SIMU_HOME_DIRECTORY)/pint_net.o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(SIMU_HOME_DIRECTORY)/perf.o
+pint_cpu:
+	$(CC) $(COMPILE_OPTION) -o $(SIMU_HOME_DIRECTORY)/main.o $(INCLUDE_OPTION) -c -O2 $(SIMU_HOME_DIRECTORY)/src/main.c
+	$(CC) $(COMPILE_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(INCLUDE_OPTION) -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_simu.c
+	$(CC) $(COMPILE_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_net.o $(INCLUDE_OPTION) -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_net.c
+	$(CC) $(COMPILE_OPTION) -o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(INCLUDE_OPTION) -c -O2 $(SIMU_HOME_DIRECTORY)/src/pint_vpi.c
+	$(CC) $(COMPILE_OPTION) -o $(SIMU_HOME_DIRECTORY)/cpu_adapt.o $(INCLUDE_OPTION) -c -O2 $(SIMU_HOME_DIRECTORY)/cpu/src/cpu_adapt.c
+	ar rcs -o $(SIMU_HOME_DIRECTORY)/pintsimu_cpu.a $(SIMU_HOME_DIRECTORY)/main.o $(SIMU_HOME_DIRECTORY)/pint_simu.o $(SIMU_HOME_DIRECTORY)/pint_net.o $(SIMU_HOME_DIRECTORY)/pint_vpi.o $(SIMU_HOME_DIRECTORY)/cpu_adapt.o
+
+
+
+
+clean:
+	rm -rf $(SIMU_HOME_DIRECTORY)/*.o $(SIMU_HOME_DIRECTORY)/*.a
+
+
+Makefile: $(SIMU_HOME_DIRECTORY)/Makefile.in ../config.status
+	cd ..; ./config.status --file=simu/$@
+
+
+install: all INSTALL_TARGET
+
+pint_install:
+	chmod 775 $(SIMU_HOME_DIRECTORY)/*.a
+	chmod 775 $(SIMU_HOME_DIRECTORY)/tools/pint_simu_stub
+	chmod 775 $(SIMU_HOME_DIRECTORY)/prof/pint_simu_prof
+	cp $(SIMU_HOME_DIRECTORY)/pintsimu.a /usr/local/lib
+	cp $(SIMU_HOME_DIRECTORY)/pintsimu_pli.a /usr/local/lib
+	cp $(SIMU_HOME_DIRECTORY)/tools/pint_simu_stub /usr/local/bin
+	cp $(SIMU_HOME_DIRECTORY)/prof/pint_simu_prof /usr/local/bin
+cpu_install:
+	chmod 775 $(SIMU_HOME_DIRECTORY)/*.a
+	mkdir -p /usr/local/include/pint_simu/inc
+	mkdir -p /usr/local/include/pint_simu/common
+	cp $(SIMU_HOME_DIRECTORY)/pintsimu_cpu.a /usr/local/lib
+	cp $(SIMU_HOME_DIRECTORY)/pintsimu.h /usr/local/include
+	cp $(SIMU_HOME_DIRECTORY)/inc/pint_net.h /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/inc/pint_code_macro.h /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/inc/pint_net.inc /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/inc/pint_simu.h /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/inc/pint_vpi.h /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/inc/cpu_adapt.h /usr/local/include/pint_simu/inc
+	cp $(SIMU_HOME_DIRECTORY)/common/debug_helper.h /usr/local/include/pint_simu/common
+	cp $(SIMU_HOME_DIRECTORY)/common/perf_def.h /usr/local/include/pint_simu/common
+	cp $(SIMU_HOME_DIRECTORY)/common/perf.h /usr/local/include/pint_simu/common
+	cp $(SIMU_HOME_DIRECTORY)/common/pint_perf_counter.h /usr/local/include/pint_simu/common
+	cp $(SIMU_HOME_DIRECTORY)/tools/pint_ivl_tool.sh /usr/local/bin/pint_ivl_tool
+	cp $(SIMU_HOME_DIRECTORY)/tools/read_file.sh /usr/local/bin
+	chmod 775 /usr/local/bin/pint_ivl_tool
+
+
+
+-include $(patsubst %.o, dep/%.d, $O)

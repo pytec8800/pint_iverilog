@@ -18,11 +18,14 @@ In uap cases, it executes average 0.72x versus closed-source simulators.
 
 You need the following softwares to compile PLS from source on a UNIX-like system:
 
+
 - GNU Make
-- CMake
+- CMake optional
 - ISO C++ Compiler
 - bison and flex
 - gperf 3.0 or later
+- readline 4.2 or later
+- termcap
 - bash
 
 ### 1.2 Compilation
@@ -33,13 +36,6 @@ Unpack the tar-ball and compile the source with the commands:
   sh autoconf.sh
   ./configure
   make -j8
-  sudo make install
-
-  cd pint_iverilog/simu
-  mkdir build
-  cd build
-  cmake ..
-  make
   sudo make install
 ```
 ## 2. Simulation example
